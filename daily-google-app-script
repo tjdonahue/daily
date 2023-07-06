@@ -1,0 +1,59 @@
+function getAdviceOfTheDay() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Get the advice sheet and the current day (row) from B1
+  var adviceSheet = spreadsheet.getSheetByName('Advice');
+  var dayCell = adviceSheet.getRange("B1");
+  var day = dayCell.getValue();
+  
+  // Get the advice from the cell in column A corresponding to the current day
+  var adviceCell = adviceSheet.getRange("A" + day);
+  var advice = adviceCell.getValue();
+  
+  // Check if the next row still has advice
+  var nextAdviceCell = adviceSheet.getRange("A" + (day + 1));
+  var nextAdvice = nextAdviceCell.getValue();
+  
+  if (nextAdvice === "") {
+    // If there's no more advice, reset the counter to 1
+    dayCell.setValue(1);
+  } else {
+    // Otherwise, increment the counter
+    dayCell.setValue(day + 1);
+  }
+  
+  // Get the phone numbers sheet
+  var phoneNumbersSheet = spreadsheet.getSheetByName('PhoneNumbers');
+  
+  // Get all phone numbers in column B
+  var phoneNumbers = phoneNumbersSheet.getRange("B2:B" + phoneNumbersSheet.getLastRow()).getValues();
+  
+  // Send the advice to all phone numbers
+  for (var i = 0; i < phoneNumbers.length; i++) {
+    if (phoneNumbers[i][0]) {
+      sendSMS(phoneNumbers[i][0], advice);
+    }
+  }
+}
+
+function sendSMS(to, body) {
+  var accountSid = 'twilio-SID'; // replace with your Account SID
+  var authToken = 'twilio-token'; // replace with your Auth Token
+  var from = 'twilio-phone'; // replace with your Twilio phone number
+  
+  var url = 'https://api.twilio.com/2010-04-01/Accounts/' + accountSid + '/Messages.json';
+
+  var options = {
+    method: 'post',
+    headers: {
+      'Authorization' : 'Basic ' + Utilities.base64Encode(accountSid + ':' + authToken)
+    },
+    payload: {
+      'To': to,
+      'Body': body,
+      'From': from
+    }
+  };
+  
+  UrlFetchApp.fetch(url, options);
+}
